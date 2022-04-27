@@ -1,0 +1,85 @@
+﻿@inject IJSRuntime JsRuntime
+@typeparam TImages
+
+<div class="container-fluid">
+    <div class="row p-2">
+        @if (screenDimentions.Item2 < 768)
+        {
+            <div class="col-12  p-1">
+                @foreach (var img in Images)
+                {
+                    @ChildContent
+
+                }
+            </div>
+        }
+        @if (768 <= screenDimentions.Item2 && screenDimentions.Item2 <= 991.98)
+        {
+            @for (int column = 0; column < 2; column++)
+            {
+                <div class="col-6  p-1">
+                    @foreach (var img in Images.Where((y, i) => i % 2 == column))
+                    {
+                        @ChildContent
+                    }
+                </div>
+            }
+
+        }
+        @if (992 <= screenDimentions.Item2 && screenDimentions.Item2 <= 1199.98)
+        {
+            @for (int column = 0; column < 3; column++)
+            {
+                <div class="col-4  p-1">
+                    @foreach (var img in Images.Where((y, i) => i % 3 == column))
+                    {
+                        @ChildContent
+                    }
+                </div>
+            }
+        }
+        @if (1200 <= screenDimentions.Item2)
+        {
+            @for (int column = 0; column < 3; column++)
+            {
+                <div class="col-4  p-1">
+                    @foreach (var img in Images.Where((y, i) => i % 3 == column))
+                    {
+                        @ChildContent
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    public class WindowDimension
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
+
+    (int, int) screenDimentions;
+
+    [Parameter]
+    public IReadOnlyList<TImages> Images { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        screenDimentions = await GetDimentions();
+
+
+    }
+
+    private async Task<(int, int)> GetDimentions()
+    {
+        var dimension = await JsRuntime.InvokeAsync<WindowDimension>("getWindowDimensions");
+
+
+        return (dimension.Height, dimension.Width);
+    }
+}

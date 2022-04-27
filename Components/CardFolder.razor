@@ -1,0 +1,54 @@
+﻿
+<div class="card m-3"   @onmouseover="ToggleVisibility" @onmouseout="ToggleVisibility" style="width: 16rem; height:fit-content;  ">
+    <img class="card-img-top" @onclick="(() => NavigateCallback.InvokeAsync(FolderInfo))" style="cursor: pointer" src="css/crab.png" alt="Card image cap">
+    <div class="card-body deepblue-background " >
+        <h5 class="card-title yellow-text">@FolderInfo.FolderName</h5>
+        <p class="card-text yellow-text">@FolderInfo.DateCreated.ToString("dd-MMM-yyyy")</p>
+    </div>
+    <div class="yellow-background w-100 @VisibilityClass ">
+        <div class="d-flex flex-row justify-content-around align-items-center">
+            <div class="p-2" style="cursor:pointer">
+                <span  @onclick="(() => CopyLinkCallback.InvokeAsync(FolderInfo.Guid.ToString()))" class="oi oi-external-link deepblue-text"></span>
+            </div>
+            <div class="p-2" @onclick="(() => RedirectCallback.InvokeAsync(FolderInfo.Guid.ToString()))" style="cursor:pointer">
+                <span class="oi oi-eye deepblue-text"></span>
+            </div>
+            <div @onclick="(() => DeleteCallback.InvokeAsync(FolderInfo.Id))" class="p-2" style="cursor:pointer">
+                <span class="oi oi-trash deepblue-text "></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+
+    [Parameter]
+    public  Folder FolderInfo { get; set; }
+
+
+    private bool visibile = true;
+
+    private string VisibilityClass => visibile ? "collapsing " : "collapse.show";
+
+    private void ToggleVisibility()
+    {
+        visibile = !visibile;
+    }
+
+    [Parameter]
+    public EventCallback<int> DeleteCallback { get; set; }
+
+    [Parameter]
+    public EventCallback<string> RedirectCallback { get; set; }
+
+    [Parameter]
+    public EventCallback<string> CopyLinkCallback { get; set; }
+
+    [Parameter]
+    public EventCallback<Folder> NavigateCallback { get; set; }
+
+
+
+
+}

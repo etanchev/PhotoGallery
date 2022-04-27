@@ -1,0 +1,85 @@
+﻿<div class="position-relative">
+    <div class="p-2" style="cursor:pointer">
+        <img class="" @onclick="(() => ImageClick())" style="@StyleImage" src="@FileImageInfo.Base64Url" />
+      
+        <div class="d-flex flex-row p-2 justify-content-around deepblue-background">
+            <span style="color:white">@FileImageInfo.FileName</span>
+            @if(IsBasketVisible) { <span  @onclick="(() => TrashBinClick())" class="oi oi-trash yellow-text pt-1" style="cursor:pointer"></span>}
+        </div>
+    </div>
+    @if (visible)
+    {
+        <div @onclick="(() => UncheckImage())"   class="position-absolute  w-100" style="top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(14, 31, 51, 0.5); cursor: pointer">
+            <div class="d-flex  w-100 h-100 justify-content-center align-items-center">
+                <div class="d-flex justify-content-center  align-items-center" style="opacity:1">
+                    <span class="oi oi-check yellow-text" style="font-size:100px"></span>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+
+
+
+@code {
+
+
+    [Parameter]
+    public IImageInfo FileImageInfo { get; set; }
+    [Parameter]
+    public EventCallback<IImageInfo> OnImageClick { get; set; }
+    [Parameter]
+    public EventCallback<IImageInfo> OnCheckClick { get; set; }
+    [Parameter]
+    public EventCallback<IImageInfo> OnTrashBinClick { get; set; }
+
+
+
+
+    [Parameter]
+    public bool IsBasketVisible { get; set; }
+    [Parameter]
+    public string StyleImage { get; set; }
+    [Parameter]
+    public bool ActivateCheckmark { get; set; }
+
+    public bool visible = false;
+
+
+    public void IsSelected()
+    {
+
+        visible = visible == false ? visible = true : visible = false;
+    }
+
+    private async Task ImageClick()
+    {
+        await OnImageClick.InvokeAsync(FileImageInfo);
+
+        if (ActivateCheckmark == true)
+        {
+            IsSelected();
+        }
+
+    }
+    private async Task TrashBinClick()
+    {
+        await OnTrashBinClick.InvokeAsync(FileImageInfo);
+
+    }
+    public async Task UncheckImage()
+    {
+        await OnCheckClick.InvokeAsync(FileImageInfo);
+        IsSelected();
+    }
+
+
+
+
+
+
+
+
+
+}

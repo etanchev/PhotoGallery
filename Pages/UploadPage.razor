@@ -1,0 +1,183 @@
+﻿@page "/UploadPage/{FolderID:guid}"
+@inject ApiCalls ApiCall
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+
+@using System.IO
+@using System.Collections.Generic
+
+<style>
+    .dropZone input[type=file] {
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer
+    }
+</style>
+
+<AuthorizeView Roles="admin">
+
+    <Authorized Context="Auth">
+        <div class="dropZone deepblue-background rounded w-100 pb-2 position-relative" style="height:150px">
+            <div class="w-100" style="position: absolute; top: 0; left: 0; height: 150px">
+                <div class="d-flex flex-column justify-content-center align-items-center" style="height: 150px">
+                    <span class="yellow-text " style="font-size:40px">Drop Files or Click</span>
+                    <div class="p-1"> <BSpinner @ref="Spiner" IsVisible="false"></BSpinner></div>
+                </div>
+            </div>
+            <InputFile title="Drop Files hHere"
+                       OnChange="OnChangeInputFile"
+                       accept="image/jpeg"
+                       multiple></InputFile>
+        </div>
+        <div class="d-flex deepblue-background flex-row justify-content-center align-items-center rounded w-100 pb-2">
+            <RCheckBox CheckBoxId="checkboxId1" Value="@IsAutoUpalodChecked" Label="Auto Upload" OnChange="ToogleAutoUpload"></RCheckBox>
+            <RCheckBox CheckBoxId="checkboxId2" Value="@IsWatermarkChecked" Label="Water Mark" OnChange="ToogleWatermark"></RCheckBox>
+        </div>
+
+        <div class="d-flex flex-wrap float-left  justify-content-center">
+            @if (imageInfoList != null)
+            {
+                foreach (var imageInfo in imageInfoList)
+                {
+                    <UploadImage DeleteImageCallback="DeleteImage"
+                                 FileImageInfo="imageInfo"
+                                 AutoUpalodEnabled="@IsAutoUpalodChecked"
+                                 WaterMarkEnabled="IsWatermarkChecked"
+                                 ServerFolderName="@FolderID">
+
+                    </UploadImage>
+                }
+            }
+
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <p>Not authorized</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    [Parameter]
+    public Guid FolderID { get; set; }
+
+    public List<string> InitializedFileNames { get; set; }
+    public List<string> InputFileNames { get; set; }
+    BSpinner Spiner { get; set; }
+    List<IImageInfo> imageInfoList;
+    bool IsAutoUpalodChecked;
+    protected bool IsWatermarkChecked;
+    Resolution res;
+
+
+    protected void ToogleAutoUpload(bool value)
+    {
+        IsAutoUpalodChecked = value;
+
+    }
+    protected void ToogleWatermark(bool value)
+    {
+        IsWatermarkChecked = value;
+
+    }
+
+    protected override void OnInitialized()
+    {
+        //imageInfoList = new();
+        //Spiner.Show();
+        //imageInfoList =  await ApiCall.GetImages(FolderID);
+        //Spiner.Hide();
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            res = await localStorage.GetItemAsync<Resolution>("ImgResolution");
+            if (res == null)
+            {
+
+                res = new Resolution() { Width = 960, Height = 720 };
+            }
+
+
+
+
+            Spiner.Show();
+            // InitializedFileNames = await ApiCall.GetImagesNamesUnauthorized(FolderID);
+            imageInfoList = await ApiCall.GetImages(FolderID);
+            imageInfoList.OrderBy(x => x.FileName);
+
+            Spiner.Hide();
+            StateHasChanged();
+        }
+
+    }
+
+    protected async Task DeleteImage(IImageInfo file)
+    {
+
+        if (file.IsLocalFile)
+        {
+            imageInfoList.Remove(file);
+            StateHasChanged();
+        }
+        else
+        {
+            var result = await ApiCall.DeleteFile(FolderID.ToString(), file.FileName);
+            if (result.IsSuccessStatusCode)
+            {
+                imageInfoList.Remove(file);
+                StateHasChanged();
+            }
+        }
+    }
+
+
+    private async Task<IBrowserFile> ResizeImage(IBrowserFile file) => await file.RequestImageFileAsync(file.ContentType, res.Width, res.Height);
+
+
+    private async Task<FileMod> Base64URL(IBrowserFile file)
+    {
+        // resize before uplaod to dimentions specified
+        var resizedFile = await ResizeImage(file);
+        var buffers = new byte[resizedFile.Size];
+        await resizedFile.OpenReadStream(1024000/*1mb*/).ReadAsync(buffers);
+        string imgUrl = $"data:{resizedFile.ContentType};base64,{Convert.ToBase64String(buffers)}";
+        return new FileMod { UrlBase64 = imgUrl, ResizedFile = resizedFile };
+
+
+    }
+
+    protected async Task OnChangeInputFile(InputFileChangeEventArgs e)
+    {
+        Spiner.Show();
+        foreach (var dropInputFile in e.GetMultipleFiles(500))
+        {
+
+            var fileMod = await Base64URL(dropInputFile);
+
+            imageInfoList.Add(new ImageInfo()
+            {
+
+                Base64Url = fileMod.UrlBase64,
+                File = fileMod.ResizedFile,
+                FileName = fileMod.ResizedFile.Name,
+                IsLocalFile = true
+
+            });
+        }
+        Spiner.Hide();
+
+    }
+
+
+
+
+
+}
+
+
+

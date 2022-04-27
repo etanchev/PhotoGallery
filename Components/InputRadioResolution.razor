@@ -1,0 +1,27 @@
+﻿@inherits InputBase<Resolution>
+
+
+
+    <input type="radio" @attributes=AdditionalAttributes class=@CssClass @bind=CurrentValueAsString />
+
+
+
+@code {
+
+
+    protected override string FormatValueAsString(Resolution value)
+    {
+        return $"{value.Width}x{value.Height}";
+    }
+
+    protected override bool TryParseValueFromString(string value, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Resolution result, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out string validationErrorMessage)
+    {
+        validationErrorMessage = "Fail to parse";
+        var splitString = value.Split("x");
+
+        result = new Resolution() { Width = Int32.Parse(splitString[0]), Height = Int32.Parse(splitString[1]) };
+
+        return true;
+    }
+
+}

@@ -1,0 +1,133 @@
+﻿@page "/"
+@inject ApiCalls ApiCalls
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject HttpClient httpclient
+@using PhotoGallery.HelperClasses
+
+
+<AuthorizeView Roles="admin">
+    <Authorized Context="Auth">
+        <div class="d-flex flex-row align-items-center mb-3 mt-3">
+
+
+            @*<button class="btn deepblue-background ">
+                     <span class="deepblue-text">+ Create Folder</span>
+                </button>*@
+
+            <EditForm class="mr-2 ml-2 form-inline " Model="@folderModel" OnValidSubmit="@Send">
+
+                <div class="form-group">
+                    <label for="createfolder" class="font-weight-bold mr-2 deepblue-text">+ Create Folder</label>
+                    <InputText class="form-control mr-2" id="createfolder" @bind-Value="folderModel.FolderName" placeholder="Folder Name"></InputText>
+
+                </div>
+                <button class="btn deepblue-background yellow-text mr-2" disabled="@Disable" style="outline:hidden" type="submit">
+                    <span class="oi oi-plus"></span>
+                </button>
+                <BSpinner @ref="Spiner" IsVisible="false"></BSpinner>
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+            </EditForm>
+
+        </div>
+        <div class="d-flex flex-wrap float-left w-100  justify-content-center rounded p-2 overflow-auto" style=" border: 1px solid rgba(14, 31, 51, 1)">
+
+            @if (folderModels == null)
+            {
+                <BSpinner @ref="Spiner" IsVisible="true"></BSpinner>
+            }
+            else
+            {
+
+                @foreach (var folder in folderModels)
+                {
+                    <CardFolder NavigateCallback="NavigateTo"
+                                CopyLinkCallback="CopyLinkToClipboard"
+                                DeleteCallback="DeleteFolder"
+                                RedirectCallback="Preview"
+                                FolderInfo="folder"></CardFolder>
+                }
+            }
+        </div>
+
+
+    </Authorized>
+    <NotAuthorized>
+        <p>Not authorized</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code{
+
+
+    private bool Disable = false;
+    private BSpinner Spiner { get; set; }
+    private string test { get; set; }
+
+
+    private List<Folder> folderModels;
+    private Folder folderModel = new Folder();
+
+    protected override async Task OnInitializedAsync()
+    {
+        folderModels = await ApiCalls.GetFolders();
+
+
+    }
+
+    private async Task CopyLinkToClipboard(string foldeID)
+    {
+        await JSRuntime.CopyToClipboard(httpclient.BaseAddress + "ClientPage/" + foldeID);
+    }
+
+    private void NavigateTo(Folder folder)
+    {
+        NavigationManager.NavigateTo("/UploadPage/" + folder.Guid);
+    }
+
+    private async Task DeleteFolder(int folderId)
+    {
+        var result = await ApiCalls.DeleteFolder(folderId);
+        if (result.IsSuccessStatusCode)
+        {
+            folderModels.Remove(folderModels.Where(x => x.Id == folderId).FirstOrDefault());
+        }
+        StateHasChanged();
+    }
+
+    private void Preview(string folderID)
+    {
+        NavigationManager.NavigateTo($"/ClientPage/{folderID}");
+    }
+
+    private async void Send()
+    {
+
+        folderModel.DateCreated = DateTime.Now;
+        folderModel.Guid = Guid.NewGuid();
+
+        Spiner.Show();
+        Disable = true;
+        Console.WriteLine(folderModel.Guid);
+        var callResult = await ApiCalls.PostFolderCreation(folderModel);
+        if (callResult.IsSuccessStatusCode)
+        {
+            folderModels = await ApiCalls.GetFolders();
+            Spiner.Hide();
+            Disable = false;
+            StateHasChanged();
+        }
+        else
+        {
+            Spiner.Hide();
+            Disable = false;
+        }
+    }
+
+
+
+
+
+
+}

@@ -1,0 +1,333 @@
+﻿@page "/ClientPage/{folderID:guid}"
+@inject ApiCalls ApiCall
+@layout ClientLayout
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+@inject IJSRuntime JsRuntime
+
+<style>
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .vh-upper-expand {
+        height: calc(90 * var(--vh));
+        transition: height linear 0.25s;
+    }
+
+    .vh-upper-collapseed {
+        height: calc(0 * var(--vh));
+        transition: height linear 0.25s;
+    }
+
+    .vh-lower-collapseed {
+        height: calc(10 * var(--vh));
+        transition: height linear 0.25s;
+    }
+
+    .vh-lower-expand {
+        height: calc(100 * var(--vh));
+        transition: height linear 0.25s;
+    }
+
+    .vh-font-size {
+        font-size: calc(4 * var(--vh))
+    }
+
+    .vh-button-height {
+        height: calc(6 * var(--vh))
+    }
+
+    .grid {
+        display: grid;
+        grid-gap: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(250px,1fr));
+        grid-auto-rows: 200px;
+    }
+    .photo {
+        grid-row-end: span 2;
+    }
+
+   
+
+</style>
+
+<EmailForm Body="pickUpList" SubmitCallback="((x)=>SendEmailToApi(x))" @ref="mailForm"></EmailForm>
+<div class="d-flex flex-column  w-100 overflow-hidden" style="height:  calc(99.99 * var(--vh)); ">
+    <div class="align-self-stretch  w-100 deepblue-background p-2 vh-upper-expand  @vhUpperToggle " style="overflow-x: auto;">
+        @if (imageInfoList != null)
+        {
+       
+
+        <div  class="container-fluid">
+            <div class="row p-2">
+               
+                @if (screenDimentions.Item2 < 768)
+                {
+                            <div class="col-12  p-1">
+                                @foreach (var img in imageInfoList)
+                                {
+
+                                    <CheckBoxImage @ref="checkBoxComponents[img.FileName]" StyleImage="width:100%" OnImageClick="((x) => OnClick(x))" OnCheckClick="((x)=>OnCheckedImage(x))" ActivateCheckmark="true" FileImageInfo="img"></CheckBoxImage>
+                                }
+                            </div>
+                }
+                @if (768 <= screenDimentions.Item2 && screenDimentions.Item2 <= 991.98)
+                {
+                            @for (int column = 0; column < 2; column++)
+                            {
+                                <div class="col-6  p-1">
+                                    @foreach (var img in imageInfoList.Where((y, i) => i % 2 == column))
+                                    {
+                                        <CheckBoxImage @ref="checkBoxComponents[img.FileName.ToString()]" StyleImage="width:100%" OnImageClick="((x) => OnClick(x))" OnCheckClick="((x) => OnCheckedImage(x))" ActivateCheckmark="true" FileImageInfo="img"></CheckBoxImage>
+                                    }
+                                </div>
+                            }
+
+                }
+                @if (992 <= screenDimentions.Item2 && screenDimentions.Item2 <= 1199.98)
+                {
+                   
+                            @for (int column = 0; column < 3; column++)
+                            {
+                                <div class="col-4  p-1">
+                                    @foreach (var img in imageInfoList.Where((y, i) => i % 3 == column))
+                                    {
+                                        <CheckBoxImage @ref="checkBoxComponents[img.FileName.ToString()]" StyleImage="width:100%" OnImageClick="((x) => OnClick(x))" OnCheckClick="((x) => OnCheckedImage(x))" ActivateCheckmark="true" FileImageInfo="img"></CheckBoxImage>
+                                    }
+                                </div>
+                            }
+                       
+                }
+                @if (1200 <= screenDimentions.Item2)
+                {
+                   
+                            @for (int column = 0; column < 3; column++)
+                            {
+                                <div class="col-4  p-1">
+                                    @foreach (var img in imageInfoList.Where((y, i) => i % 3 == column))
+                                    {
+                                        <CheckBoxImage @ref="checkBoxComponents[img.FileName.ToString()]" StyleImage="width:100%" OnImageClick="((x) => OnClick(x))" OnCheckClick="((x) => OnCheckedImage(x))" ActivateCheckmark="true" FileImageInfo="img"></CheckBoxImage>
+                                    }
+                                </div>
+                            }
+                      
+                }
+            </div>
+        </div>
+        }
+        else
+        {
+
+            <div class="d-flex  justify-content-center w-100 align-items-center vh-upper-expand">
+                <BSpinner @ref="Spiner" IsVisible="false"></BSpinner>
+            </div>
+
+        }
+
+    </div>
+
+    <div class="d-flex flex-column  yellow-background  w-100  vh-lower-collapseed  @vhLowerToggle">
+
+
+        <div class="d-flex vh-lower-collapseed flex-column w-100  justify-content-center yellow-background align-items-center">
+            <div class="d-flex  vh-lower-collapseed align-items-center yellow-background">
+                <div @onclick="ToggleBottomPanel" class="d-flex justify-content-center deepblue-background align-items-center border border-dark rounded pl-1 pr-1 vh-button-height" style="  cursor: pointer;  width:auto">
+                    @if (pickUpList != null)
+                    {
+                        <span class="p-2 yellow-text" style="font-size:4vh">@pickUpList.Count</span>
+                        <span  class="oi  oi-cart mb-2 p-2 yellow-text vh-font-size" style="cursor: pointer "></span>
+                        <span  class="oi  @oiArrowToggle   p-2 yellow-text vh-font-size" style="cursor: pointer "></span>
+                    }
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="d-flex flex-column justify-content-center" style="height: calc(70 * var(--vh)); ">
+            <div class="flex-row justify-content-center float-xl-left float-md-left w-100  " style="overflow-x:auto ">
+                <div class="d-flex flex-wrap justify-content-center  ">
+                    @if (pickUpList != null)
+                    {
+                        @foreach (var file in pickUpList.OrderBy(x=>x.FileName))
+                        {
+                            <CheckBoxImage StyleImage="max-width: 320px;" OnTrashBinClick="((x)=>OnClickPickupedImage(x))" ActivateCheckmark="false" IsBasketVisible="true" FileImageInfo="file"></CheckBoxImage>
+
+                        }
+                    }
+                </div>
+
+            </div>
+        </div>
+        <div class="d-flex  flex-column w-100  justify-content-center yellow-background vh-lower-collapseed align-items-center">
+            <div class="d-flex   align-items-center yellow-background">
+                <div class="d-flex justify-content-center deepblue-background align-items-center border border-dark rounded pl-1 pr-1 vh-button-height" style=" cursor: pointer; width:auto">
+                    @if (pickUpList != null)
+                    {
+                        <span class="p-2 yellow-text" style="font-size:4vh">@pickUpList.Count</span>
+                        <span @onclick="ShowMailForm" class="oi  oi-envelope-closed p-2 yellow-text vh-font-size" style=" cursor: pointer "></span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
+
+
+
+
+@code {
+
+    [Parameter]
+    public Guid FolderID { get; set; }
+    BSpinner Spiner { get; set; }
+    List<IImageInfo> imageInfoList;
+    List<IImageInfo> pickUpList;
+    (int, int) screenDimentions;
+
+    private Dictionary<string, CheckBoxImage> checkBoxComponents = new Dictionary<string, CheckBoxImage>();
+
+
+    EmailForm mailForm;
+    string vhLowerToggle = "";
+    string vhUpperToggle = "";
+    string oiArrowToggle = "oi-arrow-top";
+
+    //public int Height { get; set; }
+    //public int Width { get; set; }
+
+    private async Task<(int,int)> GetDimentions()
+    {
+        var dimension = await JsRuntime.InvokeAsync<WindowDimension>("getWindowDimensions");
+
+
+        return (dimension.Height, dimension.Width);
+    }
+
+    public class WindowDimension
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
+
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            Spiner.Show();
+            imageInfoList = await ApiCall.GetImagesUnauthorized(FolderID);
+            imageInfoList.OrderBy(x => x.FileName);
+            Spiner.Hide();
+            pickUpList = new();
+            StateHasChanged();
+        }
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        screenDimentions = await GetDimentions();
+        Console.WriteLine(screenDimentions.Item1 + " " + screenDimentions.Item2);
+
+    }
+
+    private void OnClick(IImageInfo image)
+    {
+
+
+        if (!pickUpList.Contains(image))
+        {
+
+            pickUpList.Add(image);
+            StateHasChanged();
+
+        }
+        //if (imageInfoList.Contains(image))
+        //{
+        //    imageInfoList.Remove(image);
+
+        //}
+        //else { }
+
+
+    }
+
+    private void OnClickPickupedImage(IImageInfo image)
+    {
+       
+
+        if (pickUpList.Contains(image))
+        {
+            pickUpList.Remove(image);
+            checkBoxComponents[image.FileName].IsSelected();
+            // imageInfoList.Add(image);
+            StateHasChanged();
+
+        }
+
+        else { }
+
+
+    }
+
+    private void OnCheckedImage(IImageInfo image)
+    {
+      
+        if (pickUpList.Contains(image))
+        {
+            pickUpList.Remove(image);
+
+            // imageInfoList.Add(image);
+            StateHasChanged();
+
+        }
+
+        else { }
+    }
+
+    public void ShowMailForm()
+    {
+
+        mailForm.ToggleVisibility();
+
+
+    }
+
+    public void ToggleBottomPanel()
+    {
+
+        vhUpperToggle = vhUpperToggle == "" ? vhUpperToggle = "vh-upper-collapseed" : vhUpperToggle = "";
+        vhLowerToggle = vhLowerToggle == "" ? vhLowerToggle = "vh-lower-expand" : vhLowerToggle = "";
+
+        oiArrowToggle = oiArrowToggle == "oi-arrow-top" ? oiArrowToggle = "oi-arrow-bottom" : oiArrowToggle = "oi-arrow-top";
+
+
+    }
+
+    private async Task SendEmailToApi(EmailModelBlazor emailModelBlazor)
+    {
+
+
+        List<string> fileNames = new();
+
+        foreach (var item in pickUpList)
+        {
+            fileNames.Add(item.FileName);
+        }
+        emailModelBlazor.Body = fileNames;
+
+
+        await ApiCall.PostEmail(emailModelBlazor);
+    }
+
+
+
+}

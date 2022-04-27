@@ -1,0 +1,219 @@
+﻿@page "/AdminPage"
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject ApiCalls ApiCall
+
+
+
+<style>
+    .dropZone input[type=file] {
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer
+    }
+    .image-loader {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.5;
+    }
+</style>
+
+<AuthorizeView Roles="admin">
+    <Authorized Context="Auth">
+        <div class="d-flex flex-row p-2">
+            <div class="d-flex flex-column flex-fill p-1">
+
+                @if (resList != null)
+                {
+                    <EditForm Model="@resList">
+                        @*<InputRadioGroup Name="res" @ref="InputRadioGroup" TValue="Resolution" ValueChanged="@(ress =>CheckedValue(ress))" ValueExpression="() => resolution ">
+                            </InputRadioGroup>*@
+                        <div class="d-flex flex-column align-items-center deepblue-background yellow-text pl-2 pr-2 pt-1 pb-1" style="height:35px"><h5>Resize Options</h5></div>
+                        <div class="d-flex flex-column border border-dark p-2" style="height:118px">
+                            @foreach (var res in resList)
+                            {
+                                if (res.Height == ImgResolution.Height)
+                                {
+                                    <div class="form-check">
+                                        <InputRadioResolution Value="@res"
+                                                              ValueChanged="OnResolutionChanged"
+                                                              ValueExpression="() => res"
+                                                              DisplayName="@(res.Width + "x" + res.Height)" class="form-check-input" Name="res" checked></InputRadioResolution>
+                                        <label class="form-check-label" for="flexRadioDefault2">
+                                            @(res.Width + "x" + res.Height)
+                                        </label>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="form-check">
+                                        <InputRadioResolution Value="@res"
+                                                              ValueChanged="OnResolutionChanged"
+                                                              ValueExpression="() => res"
+                                                              DisplayName="@(res.Width + "x" + res.Height)" class="form-check-input" Name="res"></InputRadioResolution>
+                                        <label class="form-check-label" for="flexRadioDefault2">
+                                            @(res.Width + "x" + res.Height)
+                                        </label>
+                                    </div>
+                                }
+                            }
+
+                        </div>
+                    </EditForm>
+                }
+            </div>
+            <div class="d-flex flex-column flex-fill p-1">
+                <div class="d-flex flex-column align-items-center deepblue-background yellow-text pl-2 pr-2 pt-1 pb-1" style="height:35px"><h5>Water Mark</h5></div>
+                <div class="d-flex flex-rown p-2 justify-content-center align-items-center border border-dark" style="max-height:150px">
+                    <div class="d-flex justify-content-center align-items-center" style="height:100px">
+                        <div class="position-relative">
+                            @if (WaterMark != "")
+                            {
+                                <img src="@WaterMark" style="height:100px" />
+                            }
+
+                            @if (visible)
+                            {
+                                <div class="image-loader position-absolute deepblue-background w-100">
+                                    <div class="d-flex  w-100 h-100 justify-content-center align-items-center">
+                                        <div class="d-flex justify-content-center  align-items-center" style="opacity:1">
+                                            <div class="spinner-border text-warning" role="status">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center align-items-center" style="height: 100px; cursor: pointer">
+                        <div class="dropZone deepblue-background rounded m-2 position-relative" style="height:35px;width:60px;">
+                            <div class="w-100" style="position: absolute; top: 0; left: 0; height: 35px ">
+                                <div class="d-flex flex-column justify-content-center align-items-center" style="height: 35px;">
+                                    <span class="yellow-text " style="font-size: 15px;">Upload</span>
+                                    @*<div class="p-1"> <BSpinner @ref="Spiner" IsVisible="false"></BSpinner></div>*@
+                                </div>
+                            </div>
+                            <InputFile title="Upload" OnChange="OnChangeInputFile" accept="image/png"></InputFile>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <p>Not authorized</p>
+    </NotAuthorized>
+</AuthorizeView>
+@code {
+
+
+    //set default ressolution
+    private Resolution ImgResolution;
+    private List<Resolution> resList { get; set; }
+    private BSpinner Spiner;
+    private bool visible = false;
+    private string WaterMark;
+
+
+
+    private void OnResolutionChanged(Resolution ress)
+    {
+        localStorage.SetItemAsync<Resolution>("ImgResolution", ress);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        ImgResolution = await localStorage.GetItemAsync<Resolution>("ImgResolution");
+        if(ImgResolution == null)
+        {
+            ImgResolution = new Resolution() { Width = 960, Height = 720 };
+        }
+
+
+        string WaterMarkStorage = await localStorage.GetItemAsync<string>("WaterMark");
+
+        if (!String.IsNullOrEmpty(WaterMarkStorage))
+        {
+
+            visible = true;
+           // WaterMark = await ApiCall.GetWatermark();
+            WaterMark = WaterMarkStorage;
+            visible = false;
+        }
+        else
+        {
+            visible = true;
+            WaterMark = await ApiCall.GetWatermark();
+            visible = false;
+            await localStorage.SetItemAsync<string>("WaterMark", WaterMark);
+        }
+
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+
+
+            List<Resolution> _resList = new List<Resolution>{
+            new Resolution() { Width = 1280, Height = 960 },
+            new Resolution() { Width = 960, Height = 720 },
+            new Resolution() { Width = 720, Height = 540 },
+            };
+
+            resList = _resList;
+        }
+    }
+
+    protected async Task OnChangeInputFile(InputFileChangeEventArgs e)
+    {
+
+        await  UploadWaterMark(e.File);
+        StateHasChanged();
+
+    }
+
+    private async Task UploadWaterMark(IBrowserFile file)
+    {
+        bool upload = false;
+        using var content = new MultipartFormDataContent();
+
+        try
+        {
+            var fileContent = new StreamContent(file.OpenReadStream(file.Size));
+            content.Add(content: fileContent,name: "\"files\"",fileName: file.Name);
+            upload = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Upload failed");
+            //Logger.LogInformation("Upload failed", file.Name, ex.Message);
+        }
+
+        if (upload)
+        {
+            visible = true;
+            var response =  await ApiCall.UploadWaterMark(content);
+            if (response.IsSuccessStatusCode)
+            {
+                WaterMark = await ApiCall.GetWatermark();
+            }
+            visible = false;
+        }
+    }
+
+}

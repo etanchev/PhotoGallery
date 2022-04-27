@@ -1,0 +1,172 @@
+﻿@using System.IO;
+@using Microsoft.Extensions.Logging;
+@inject ApiCalls ApiCall
+@inject ILogger<UploadImage> Logger
+
+
+
+<div class="m-1 position-relative image-container">
+    <div class="deepblue-background" style="width:300px; height:200px;">
+        <img class="img-format" src="@FileImageInfo.Base64Url" />
+        @if (isSpinnerVisible)
+        {
+            <BSpinner @ref="Spiner" IsVisible="true"></BSpinner>
+        }
+    </div>
+    <div class="image-menu position-absolute deepblue-background p-2">
+        <div class="d-flex flex-row  w-100 justify-content-around">
+            <span @onclick="(() => DeleteImageCallback.InvokeAsync(FileImageInfo))" class="oi oi-trash yellow-text" style="cursor:pointer"></span>
+            @if (FileImageInfo.File != null)
+            {
+                <span @onclick="(() => Upload(FileImageInfo.File))" class="oi oi-cloud-upload yellow-text" style="cursor:pointer"></span>
+            }
+
+        </div>
+    </div>
+    @if (visible)
+    {
+        <div class="image-loader position-absolute deepblue-background w-100">
+            <div class="d-flex  w-100 h-100 justify-content-center align-items-center">
+                <div class="d-flex justify-content-center  align-items-center" style="opacity:1">
+                    <div class="spinner-border text-warning" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    <div class="d-flex flex-row justify-content-center deepblue-text">
+        <span>@FileImageInfo.FileName</span>
+    </div>
+</div>
+
+<style>
+    .image-menu {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        opacity: 0;
+        transition: opacity linear 0.3s;
+    }
+
+
+    .image-container:hover .image-menu {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        opacity: 1;
+        transition: opacity linear 0.3s;
+    }
+
+    .image-loader {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.5;
+    }
+
+    .img-format {
+        display: block;
+        max-height: 200px;
+    }
+</style>
+
+@code {
+
+    [Parameter]
+    public string ImageBase64URL { get; set; }
+    [Parameter]
+    public string FileName { get; set; }
+    [Parameter]
+    public IImageInfo FileImageInfo { get; set; }
+    [Parameter]
+    public Guid ServerFolderName { get; set; }
+    [Parameter]
+    public EventCallback<IImageInfo> DeleteImageCallback { get; set; }
+    [Parameter]
+    public bool AutoUpalodEnabled { get; set; }
+    [Parameter]
+    public bool WaterMarkEnabled { get; set; }
+    protected bool isSpinnerVisible = false;
+    BSpinner Spiner { get; set; }
+
+    protected bool visible;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (AutoUpalodEnabled)
+        {
+            //upload file to server
+            await Upload(FileImageInfo.File);
+
+        }
+
+        if (String.IsNullOrEmpty(FileImageInfo.Base64Url))
+        {
+
+            //Spiner.Show();
+            //get the base64
+
+            isSpinnerVisible = true;
+            var internalFileImageInfo = await ApiCall.GetImageBase64(ServerFolderName, FileImageInfo.FileName);
+            FileImageInfo.Base64Url = internalFileImageInfo.Base64Url;
+            isSpinnerVisible = false;
+            // Spiner.Hide();
+
+        }
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+
+        }
+
+    }
+
+
+
+    protected async Task Upload(IBrowserFile file)
+    {
+        bool upload = false;
+        using var content = new MultipartFormDataContent();
+
+        try
+        {
+            var fileContent = new StreamContent(file.OpenReadStream(file.Size));
+
+            content.Add(
+                content: fileContent,
+                name: "\"files\"",
+                fileName: file.Name);
+
+            upload = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogInformation("Upload failed", file.Name, ex.Message);
+        }
+
+        if (upload)
+        {
+            visible = true;
+            var response = await ApiCall.UploadFile(content, ServerFolderName.ToString(), WaterMarkEnabled);
+            if (response.IsSuccessStatusCode)
+            {
+                FileImageInfo.IsLocalFile = false;
+            }
+            visible = false;
+        }
+
+    }
+
+
+
+
+
+}

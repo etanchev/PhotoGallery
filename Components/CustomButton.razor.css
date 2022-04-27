@@ -1,0 +1,12 @@
+﻿.div-square-button {
+    height: 30px;
+    width: 30px;
+    border-radius: 10%;
+    transition: border-radius ease-in-out .2s;
+}
+
+    .div-square-button:hover {
+        cursor: pointer;
+        border-radius: 50%;
+        transition: border-radius ease-in-out .2s;
+    }

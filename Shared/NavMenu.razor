@@ -1,0 +1,59 @@
+﻿@inject HttpClient httpclient
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+
+<nav class="navbar  navbar-expand-lg navbar-expand-md navbar-light deepblue-background">
+    <div class="container-fluid">
+        <a class="navbar-brand" style="font-size:30px" href="#">
+            <img src="css/crab.png" alt="" width="35" height="35" class="d-inline-block align-text-top">
+            <span class="yellow-text">Gallery</span>
+        </a>
+        <button class="navbar-toggler" @onclick="ToggleNavMenu" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="@NavMenuCssClass navbar-collapse" id="navbarNav">
+            <AuthorizeView>
+                <ul class="navbar-nav mr-auto ">
+                    <li class="nav-item pl-2 pr-2">
+                        <CustomButton FontSize="15px" ButtonClick="ShowIndexPage" Text="+">
+                            <span class="oi oi-folder deepblue-text"></span>
+                        </CustomButton>
+                    </li>
+                    <li class="nav-item pl-2 pr-2">
+                        <CustomButton FontSize="15px" ButtonClick="ShowAdminPage">
+                            <span class="oi oi-wrench deepblue-text"></span>
+                        </CustomButton>
+                    </li>
+
+                </ul>
+            </AuthorizeView>
+            <LoginDisplay></LoginDisplay>
+        </div>
+    </div>
+</nav>
+
+
+@code {
+
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        StateHasChanged();
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private void ShowAdminPage()
+    {
+        NavigationManager.NavigateTo("AdminPage");
+    }
+
+    private void ShowIndexPage()
+    {
+        NavigationManager.NavigateTo(NavigationManager.BaseUri);
+    }
+}

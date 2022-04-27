@@ -1,0 +1,137 @@
+﻿@inject ApiCalls ApiCalls
+
+
+<style>
+    .email-container {
+        z-index: 100;
+        height: 100vh;
+        background-color: rgba(14, 31, 51, 0.5);
+    }
+    .email-container-aligment {
+        height: 100vh;
+        background-color: rgba(14, 31, 51, 0.5);
+    }
+    .email-form {
+        border-radius: 0.25rem;
+        height: auto;
+        background-color: rgba(14, 31, 51, 1);
+        border: 1px solid;
+        border-color: rgba(206,164,52,1);
+        border-radius: 0.25rem;
+        max-width: 300px;
+    }
+    .input-box{
+        height:2rem;
+    }
+</style>
+
+@if(IsVissible){
+<div class="position-absolute w-100 email-container">
+    <div class=" position-absolute p-3" style="top:0;right:0">
+        <div class="w-100 d-flex justify-content-center align-items-center " style="height:40px">
+            <span @onclick="ToggleVisibility" class="oi oi-circle-x " style="font-size: 30px; cursor: pointer; color: rgba(206,164,52,1) ;"></span>
+        </div>
+    </div>
+    <div class="d-flex w-100 justify-content-center deepblue-background align-items-center email-container-aligment">
+        <div class="d-flex p-2 deepblue-background  align-items-center email-form">
+            <EditForm Model="@emailModel" OnValidSubmit="(()=>HandleValidSubmit(emailModel))">
+                <div class="p-2 ">
+                    <label class="yellow-text input-box" for="Name">Име: </label>
+                    <InputText id="Name" @bind-Value="emailModel.Name" class="form-control"> </InputText>
+                </div>
+                <div class="p-2">
+                    <label class="yellow-text" for="Tel">Тел: </label>
+                    <InputText id="Tel" @bind-Value="emailModel.Tel" class="form-control"></InputText>
+                </div>
+                <div class="p-2">
+                    <label class="yellow-text" for="Email">Е-мейл: </label>
+                    <InputText id="Email" @bind-Value="emailModel.Email" class="form-control"></InputText>
+                </div>
+
+
+                <div class="p-2 d-flex justify-content-center">
+                    <button class="btn btn-dark @DisableClass " type="submit" ><span class="oi oi-envelope-closed yellow-text" style="font-size:30px"></span></button>
+                </div>
+                <div class="d-flex p-2 flex-column justify-content-center w-100 align-items-center">
+                    <BSpinner @ref="Spiner" IsVisible="false" ></BSpinner>
+                    <span class="d-flex  justify-content-center yellow-text text-wrap">@msg</span>
+                </div>
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+            </EditForm>
+             
+               
+           
+        </div>
+    </div>
+  
+</div>
+}
+
+
+@code {
+
+    [Parameter]
+    public List<IImageInfo> Body { get; set; }
+    private bool IsVissible { get; set; } = false;
+
+    private BSpinner Spiner;
+    private string msg = "";
+    private string DisableClass;
+    [Parameter]
+    public EventCallback<EmailModelBlazor> SubmitCallback { get; set; }
+
+
+    private EmailModelBlazor emailModel = new EmailModelBlazor();
+
+
+
+
+
+    private async Task HandleValidSubmit(EmailModelBlazor emailModelBlazor) {
+
+        List<string> fileNames = new();
+
+        foreach (var item in Body)
+        {
+            fileNames.Add(item.FileName);
+        }
+        emailModelBlazor.Body = fileNames.OrderBy(x=>x).ToList();
+
+        Spiner.Show();
+        DisableClass = "disabled";
+        msg = "Изпращане на снимките. Моля изчакайте.";
+        var result = await ApiCalls.PostEmail(emailModelBlazor);
+
+
+
+        if (result.IsSuccessStatusCode)
+        {
+            msg = "Успешно изпратен емайл.Моля проверете си пощата.";
+            DisableClass = "";
+            Spiner.Hide();
+
+        }
+        else
+        {
+            msg = "Проблем при изпращането а на емайла. Моля опитайте отново!";
+            DisableClass = "";
+            Spiner.Hide();
+        }
+
+
+        // await SubmitCallback.InvokeAsync(emailModelBlazor);
+
+    }
+
+    public void ToggleVisibility()
+    {
+        if (IsVissible) { DisableClass = "";  msg = ""; }
+        IsVissible = IsVissible == false ? IsVissible = true : IsVissible = false;
+        StateHasChanged();
+    }
+
+
+
+}
